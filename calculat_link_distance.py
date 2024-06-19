@@ -18,7 +18,7 @@ def calLinkLength(base_coor, hip_joint_coor, thigh_joint_coor, calf_joint_coor, 
     thighTo_hip = math.sqrt(thighToHip_coor[0]**2 + thighToHip_coor[1]**2 + thighToHip_coor[2]**2) #distance between the thigh joint and the hip joint
 
     #Thight length: between thight joint and carlf joint
-    calfTo_thigh = math.sqrt(
+    calf
    
 
 
