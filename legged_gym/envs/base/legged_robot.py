@@ -48,6 +48,8 @@ from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_fl
 from legged_gym.utils.helpers import class_to_dict
 from .legged_robot_config import LeggedRobotCfg
 
+from scipy.spatial.transform import Rotation as R
+
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
         """ Parses the provided config file,
@@ -373,6 +375,23 @@ class LeggedRobot(BaseTask):
         else:
             raise NameError(f"Unknown controller type: {control_type}")
         return torch.clip(torques, -self.torque_limits, self.torque_limits)
+    
+
+    def generate_upside_down_quaternion(self, size, env_ids=None):
+
+        #generate a random quaternion for each environment
+
+        random_quat = R.random(random_state=torch.randint(0, 2**32 - 1, (1,)).item()).as_quat()
+
+        rotating_angle = np.random.uniform(5*np.pi/6, 7*np.pi/6)
+
+        upside_down_quat = R.from_euler('x', rotating_angle).as_quat()
+
+        final_quat = R.from_quat(random_quat)*R.from_quat(upside_down_quat)
+
+    
+        return torch.tensor(final_quat.as_quat(), dtype=torch.float32, device=self.device).repeat(size, 1)
+
 
     def _reset_dofs(self, env_ids):
         """ Resets DOF position and velocities of selected environmments
@@ -404,6 +423,17 @@ class LeggedRobot(BaseTask):
         else:
             self.root_states[env_ids] = self.base_init_state
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
+        
+        if self.cfg.init_state.robot_upside_down:
+
+         
+            if env_ids[0] % 2 == 1:
+                self.root_states[env_ids, 3:7] = self.generate_upside_down_quaternion(len(env_ids))
+
+            else:
+                self.root_states[env_ids, 3:7] = torch_rand_float(-0.5, 0.5, (len(env_ids), 4), device=self.device)
+
+        
         # base velocities
         self.root_states[env_ids, 7:13] = torch_rand_float(-0.5, 0.5, (len(env_ids), 6), device=self.device) # [7:10]: lin vel, [10:13]: ang vel
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -428,8 +458,11 @@ class LeggedRobot(BaseTask):
         if not self.init_done:
             # don't change on initial reset
             return
+        # compute distance from origin
         distance = torch.norm(self.root_states[env_ids, :2] - self.env_origins[env_ids, :2], dim=1)
+        
         # robots that walked far enough progress to harder terains
+        # robots that walked less than half of their required distance go to simpler terrains
         move_up = distance > self.terrain.env_length / 2
         # robots that walked less than half of their required distance go to simpler terrains
         move_down = (distance < torch.norm(self.commands[env_ids, :2], dim=1)*self.max_episode_length_s*0.5) * ~move_up
@@ -824,10 +857,51 @@ class LeggedRobot(BaseTask):
     def _reward_orientation(self):
         # Penalize non flat base orientation
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+    
+
+    #What does root_states include? 
+    # root_states = [x, y, z, quat, lin_vel, ang_vel]
+    # root_states = [0, 1, 2, 3:7, 7:10, 10:13]
+    # base_quat = root_states[:, 3:7]
+
+    #Where is the origin of the robot?
+    # base_init_state = [x, y, z, quat, lin_vel, ang_vel]
+    # base_init_state = [0, 1, 2, 3:7, 7:10, 10:13]
+
+    #Where does the base_height measured from? 
+    # base_height = root_states[:, 2].unsqueeze(1) - self.measured_heights
+
+    #Does base_height include the height of the robot? Such as the height of the pelvis?
+    # base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+
+    #What does dof_pos include?
+    # dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+
+    #How do I add constrints to the robot's hip joints? 
+   
+
+
+
 
     def _reward_base_height(self):
         # Penalize base height away from target
         base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+
+
+        #print of dof info 
+        # print("Dof pos shape", self.dof_pos.shape) #(num_envs, 13)
+
+        # #dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        # print("Dof pos", self.dof_pos) #scale
+
+        # print("Base height shape", base_height.shape) #(num_envs)
+        # print("Base height: ", torch.mean(base_height))
+        # print("Measured_heights", self.measured_heights) #scale
+        # print("Target height", self.cfg.rewards.base_height_target) #(num_envs, 13)
+
+        # print("Shape of root states: ", self.root_states.shape)
+
+
         return torch.square(base_height - self.cfg.rewards.base_height_target)
     
     def _reward_torques(self):
@@ -904,3 +978,109 @@ class LeggedRobot(BaseTask):
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+
+    def _reward_base_uprightness(self):
+        # Penalize base orientation away from upright
+        #self.projected_gravity direction is the opposite of the gravity vectorv
+        return 1. - self.projected_gravity[:, 2] 
+    
+    def _reward_foot_contact(self):
+        contact = self.contact_forces[:, self.feet_indices, 2] > 1.
+        return torch.sum(contact, dim=1) / len(self.feet_indices)
+    
+    def _reward_dof_power(self):
+        # Penalize power consumption
+        return torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
+    
+    def _reward_dof_position(self):
+
+     
+        hip_joint_indices = [0, 3, 6, 9]
+
+        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
+
+        reward = sum(hip_diffs)
+        reward = torch.clamp(reward, 0, 1)
+
+        """
+        TESTING AREA
+        """
+
+        print("Base position: ", self.root_states[:, :3])
+
+
+        return reward
+    
+
+    def InverseKinematicsGo1(self):
+        
+        #Unitree Go1 
+        #Calculate the rotating angles for each joints from the base position(x, y, z)
+
+        #Get the base position
+        base_position = self.root_states[:, :3]
+
+        base_height = base_position[:, 2]
+
+        #Shoulder offset
+        shoulder_offset = 0.1 #m
+
+        #Hip offset
+        hip_offset = 0.1 
+
+
+
+
+
+"""
+<joint name="floating_base" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base"/>
+    <child link="trunk"/>
+  </joint>
+
+  <joint name="FR_hip_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0.1881 -0.04675 0"/>
+    <parent link="trunk"/>
+    <child link="FR_hip"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0" friction="0"/>
+    <limit effort="33.5" lower="-0.802851455917" upper="0.802851455917" velocity="50"/>
+  </joint>
+
+   <joint name="FR_thigh_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 -0.08 0"/>
+    <parent link="FR_hip"/>
+    <child link="FR_thigh"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0" friction="0"/>
+    <limit effort="33.5" lower="-1.0471975512" upper="4.18879020479" velocity="28"/>
+  </joint>
+
+
+  <joint name="FR_calf_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 -0.213"/>
+    <parent link="FR_thigh"/>
+    <child link="FR_calf"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0" friction="0"/>
+    <limit effort="33.5" lower="-2.69653369433" upper="-0.916297857297" velocity="28"/>
+  </joint>
+
+
+    <joint name="FR_foot_fixed" type="fixed" dont_collapse="true">
+    <origin rpy="0 0 0" xyz="0 0 -0.213"/>
+    <parent link="FR_calf"/>
+    <child link="FR_foot"/>
+  </joint>
+
+
+  
+
+"""
+
+
+
+
+
+

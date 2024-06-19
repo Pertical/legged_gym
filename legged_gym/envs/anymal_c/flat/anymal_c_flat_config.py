@@ -47,6 +47,7 @@ class AnymalCFlatCfg( AnymalCRoughCfg ):
             orientation = -5.0
             torques = -0.000025
             feet_air_time = 2.
+            base_height = -0.5
             # feet_contact_forces = -0.01
     
     class commands( AnymalCRoughCfg.commands ):

@@ -39,6 +39,8 @@ class AnymalCRoughCfg( LeggedRobotCfg ):
         mesh_type = 'trimesh'
 
     class init_state( LeggedRobotCfg.init_state ):
+
+        robot_upside_down = False
         pos = [0.0, 0.0, 0.6] # x,y,z [m]
         default_joint_angles = { # = target angles [rad] when action = 0.0
             "LF_HAA": 0.0,
