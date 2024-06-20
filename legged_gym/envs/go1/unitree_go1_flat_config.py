@@ -16,6 +16,14 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         mesh_type = 'plane'
         measure_heights = False
 
+    
+    class commands: 
+
+        pass
+        
+
+
+
     class init_state(AnymalCRoughCfg.init_state):
         
         robot_upside_down = True
@@ -23,19 +31,19 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
         default_joint_angles = { # = target angles [rad] when action = 0.0
             'FL_hip_joint': 0.1,   # [rad] #0.1 radian is 5.7 degrees
-            'RL_hip_joint': 0.1,   # [rad]
-            'FR_hip_joint': -0.1 ,  # [rad]
-            'RR_hip_joint': -0.1,   # [rad]
+            'RL_hip_joint': 0.1,   # [rad] #0.1 radian is 5.7 degrees
+            'FR_hip_joint': -0.1 ,  # [rad] #-0.1 radian is -5.7 degrees
+            'RR_hip_joint': -0.1,   # [rad] #-0.1 radian is -5.7 degrees
 
-            'FL_thigh_joint': 0.8,     # [rad]
-            'RL_thigh_joint': 1.,   # [rad]
-            'FR_thigh_joint': 0.8,     # [rad]
-            'RR_thigh_joint': 1.,   # [rad]
+            'FL_thigh_joint': 0.8,     # [rad] #0.8 radian is 45.9 degrees
+            'RL_thigh_joint': 1.,   # [rad] #1 radian is 57.3 degrees
+            'FR_thigh_joint': 0.8,     # [rad] #0.8 radian is 45.9 degrees
+            'RR_thigh_joint': 1.,   # [rad] #1 radian is 57.3 degrees
 
-            'FL_calf_joint': -1.5,   # [rad]
-            'RL_calf_joint': -1.5,    # [rad]
-            'FR_calf_joint': -1.5,  # [rad]
-            'RR_calf_joint': -1.5,    # [rad]
+            'FL_calf_joint': -1.5,   # [rad] #-1.5 radian is -85.9 degrees
+            'RL_calf_joint': -1.5,    # [rad] #-1.5 radian is -85.9 degrees
+            'FR_calf_joint': -1.5,  # [rad] #-1.5 radian is -85.9 degrees
+            'RR_calf_joint': -1.5,    # [rad] #-1.5 radian is -85.9 degrees 
 
         }
 
@@ -43,6 +51,23 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         #Hip joint: -60 ~ 60 degrees, in radians: -1.0472 ~ 1.0472
         #Thigh joint: -38 ~ 170 degrees, in radians: -0.663225115 ~ 2.96705973
         #Calf joint: -156 ~ -48 degrees, in radians: -2.70526034 ~ -0.837758041
+
+
+        # namespace UNITREE_LEGGED_SDK 
+        # {
+        #     constexpr double go1_Hip_max   = 1.047;    // unit:radian ( = 60   degree)
+        #     constexpr double go1_Hip_min   = -1.047;   // unit:radian ( = -60  degree)
+        #     constexpr double go1_Thigh_max = 2.966;    // unit:radian ( = 170  degree)
+        #     constexpr double go1_Thigh_min = -0.663;   // unit:radian ( = -38  degree)
+        #     constexpr double go1_Calf_max  = -0.837;   // unit:radian ( = -48  degree)
+        #     constexpr double go1_Calf_min  = -2.721;   // unit:radian ( = -156 degree)
+        # }
+
+        #Enum difinition for the four legs in Unitree Go1 
+        # Leg0 FR = right front leg
+        # Leg1 FL = left front leg
+        # Leg2 RR = right rear leg
+        # Leg3 RL = left rear leg
 
         
 
@@ -57,6 +82,9 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         decimation = 4
 
         use_actuator_network = False
+
+
+
 
 
     class asset(AnymalCRoughCfg.asset):
