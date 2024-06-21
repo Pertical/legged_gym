@@ -21,7 +21,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
         heading_command = False
         num_commands = 4
-        resampling_time = 2.
+        resampling_time = 5.
         
         base_height_command = True
 
@@ -124,14 +124,14 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -5.
+            base_height = -1.
             feet_air_time =  0.
             collision = -0.5
             feet_stumble = -0.0 
             action_rate = -0.01
             stand_still = -0.
 
-            base_uprightness = 5.
+            base_uprightness = 2.
             foot_contact = 1. 
             dof_power = -0.0001
             dof_pos_limits = -0.1
@@ -181,7 +181,7 @@ class UnitreeGo1FlatCfgPPO( AnymalCRoughCfgPPO ):
         run_name = 'go1_flat'
         experiment_name = 'flat_unitree_go1'
         # load_run = -1
-        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun19_17-10-47_go1_flat" 
+        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun21_16-00-06_go1_flat" 
         max_iterations = 1501
 
         num_steps_per_env = 30 # 30 steps per env

@@ -991,14 +991,26 @@ class LeggedRobot(BaseTask):
     
     #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
     def _reward_hip_angle(self):
+        pass 
+        hip_joint_indices = [0, 3, 6, 9] # FR, FL, RR, RL
+        reward = torch.relu(sum(torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices), 0, 1)
+        return reward
         
     
     #TODO Add controls on the thigh_angle, for defaul position, the foot's x&y is set, the thigh angle should be based on the cmd height 
     def _reward_thigh_angle(self):
-        pass 
+        thigh_joint_indices = [1, 4, 7, 10] #FR, FL, RR, RL
+
+        pass
+
+
+
     
     #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
     def _reward_calf_angle(self):
+        calf_joint_indices = [2, 5, 8, 11] #FR, FL, RR, RL
+
+
         pass 
     
 
@@ -1051,7 +1063,7 @@ class LeggedRobot(BaseTask):
 
 
 """
-
+    #what does dof_angle co
 
 
     #What does root_states include? 

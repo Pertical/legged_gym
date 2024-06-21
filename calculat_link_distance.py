@@ -140,10 +140,10 @@ if __name__ == "__main__":
     calf_joint_coor = [0., 0., -0.213]
     foot_coor = [0., 0., -0.213]
 
-    FLfoot_desired_coor = [0.1881, -0.12675, -0.3] #FL
-    FRfoot_desired_coor = [0.1881, 0.12675, -0.3] #FR
-    RRfoot_desired_coor = [-0.1881, 0.12675, -0.3] #RR
-    RLfoot_desired_coor = [-0.1881, -0.12675, -0.3] #RL 
+    FLfoot_desired_coor = [0.1881, -0.12675, -0.2] #FL
+    FRfoot_desired_coor = [0.1881, 0.12675, -0.2] #FR
+    RRfoot_desired_coor = [-0.1881, 0.12675, -0.2] #RR
+    RLfoot_desired_coor = [-0.1881, -0.12675, -0.2] #RL 
 
 
     # footToCalfCoor = relativeCoorCalculation(calf_joint_coor, foot_coor)
@@ -175,5 +175,11 @@ if __name__ == "__main__":
         print("Calf angle: ", alpha)
         print("Thigh angle: ", beta)
         print("\n")
+
+        print("Hip angle in degree: ", gamma * 180 / math.pi)
+        print("Calf angle in degree: ", alpha * 180 / math.pi)
+        print("Thigh angle in degree: ", beta * 180 / math.pi)
+
+        
 
  
