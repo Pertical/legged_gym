@@ -17,12 +17,23 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         measure_heights = False
 
     
-    class commands: 
+    class commands(AnymalCRoughCfg.commands): 
 
-        pass
+        heading_command = False
+        num_commands = 5
+        resampling_time = 2.
         
+        base_height_command = True
 
-
+        class ranges:
+            lin_vel_x = [0., 0.]
+            lin_vel_y = [0., 0.]
+            ang_vel_yaw = [0., 0.]
+            heading = [0., 0.]
+            base_height = [0.2, 0.6]
+            # base_height_adjustment = [0., 0.]
+            # base_height_target = 0.6
+    
 
     class init_state(AnymalCRoughCfg.init_state):
         
@@ -85,8 +96,6 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
 
 
-
-
     class asset(AnymalCRoughCfg.asset):
         self_collisions = 0
 
@@ -103,7 +112,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
     
     class rewards( AnymalCRoughCfg.rewards ):
         max_contact_force = 350.
-        base_height_target = 0.6
+        base_height_target = 0.3
         class scales ( AnymalCRoughCfg.rewards.scales ):
 
             
@@ -131,15 +140,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             dof_position = -1.
 
         
-    class commands( AnymalCRoughCfg.commands ):
-        heading_command = False
-        resampling_time = 4.
-        class ranges( AnymalCRoughCfg.commands.ranges ):
-            lin_vel_x = [0., 0.]
-            lin_vel_y = [0., 0.]
-            ang_vel_yaw = [0., 0.]
-            heading = [0., 0.]
-
+    
     class domain_rand( AnymalCRoughCfg.domain_rand ):
         friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
 

@@ -140,7 +140,11 @@ if __name__ == "__main__":
     calf_joint_coor = [0., 0., -0.213]
     foot_coor = [0., 0., -0.213]
 
-    foot_desired_coor = [0.1881, -0.12675, 0] 
+    FLfoot_desired_coor = [0.1881, -0.12675, -0.3] #FL
+    FRfoot_desired_coor = [0.1881, 0.12675, -0.3] #FR
+    RRfoot_desired_coor = [-0.1881, 0.12675, -0.3] #RR
+    RLfoot_desired_coor = [-0.1881, -0.12675, -0.3] #RL 
+
 
     # footToCalfCoor = relativeCoorCalculation(calf_joint_coor, foot_coor)
 
@@ -159,13 +163,17 @@ if __name__ == "__main__":
     print("Calf Length", footToCalf_Distance)
 
 
-    foot_desired_coor[2] = 0.30
+    # foot_desired_coor[2] = 0.30
 
-    hip_angle, calf_angle, thigh_angle = InverseKinematics(foot_desired_coor[0], foot_desired_coor[1], foot_desired_coor[2])
+    #Print all the angles for each foot desired position
 
-    print("Hip angle: ", hip_angle)
-    print("Calf angle: ", calf_angle)
-    print("Thigh angle: ", thigh_angle)
+    for foot_desired_coor in [FLfoot_desired_coor, FRfoot_desired_coor, RRfoot_desired_coor, RLfoot_desired_coor]:
 
+        gamma, alpha, beta = InverseKinematics(foot_desired_coor[0], foot_desired_coor[1], foot_desired_coor[2])
 
-    
+        print("Hip angle: ", gamma)
+        print("Calf angle: ", alpha)
+        print("Thigh angle: ", beta)
+        print("\n")
+
+ 
