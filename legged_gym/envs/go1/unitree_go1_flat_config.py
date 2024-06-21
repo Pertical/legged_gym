@@ -7,7 +7,7 @@ from legged_gym.envs import AnymalCRoughCfg, AnymalCRoughCfgPPO
 class UnitreeGo1FlatCfg(AnymalCRoughCfg):
     class env(AnymalCRoughCfg.env):
 
-        num_observations = 48
+        num_observations = 49
         episode_length_s = 4.
 
         num_envs = 4096
@@ -20,7 +20,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
     class commands(AnymalCRoughCfg.commands): 
 
         heading_command = False
-        num_commands = 5
+        num_commands = 4
         resampling_time = 2.
         
         base_height_command = True
@@ -30,26 +30,26 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             lin_vel_y = [0., 0.]
             ang_vel_yaw = [0., 0.]
             heading = [0., 0.]
-            base_height = [0.2, 0.6]
+            base_height = [0.2, 0.3]
             # base_height_adjustment = [0., 0.]
             # base_height_target = 0.6
     
 
     class init_state(AnymalCRoughCfg.init_state):
-        
+
         robot_upside_down = True
         pos = [0.0, 0.0, 0.3]
 
         default_joint_angles = { # = target angles [rad] when action = 0.0
-            'FL_hip_joint': 0.1,   # [rad] #0.1 radian is 5.7 degrees
-            'RL_hip_joint': 0.1,   # [rad] #0.1 radian is 5.7 degrees
-            'FR_hip_joint': -0.1 ,  # [rad] #-0.1 radian is -5.7 degrees
-            'RR_hip_joint': -0.1,   # [rad] #-0.1 radian is -5.7 degrees
+            'FL_hip_joint': 0.,   # [rad] #0.1 radian is 5.7 degrees
+            'RL_hip_joint': 0.,   # [rad] #0.1 radian is 5.7 degrees
+            'FR_hip_joint': 0. ,  # [rad] #-0.1 radian is -5.7 degrees
+            'RR_hip_joint': 0.,   # [rad] #-0.1 radian is -5.7 degrees
 
             'FL_thigh_joint': 0.8,     # [rad] #0.8 radian is 45.9 degrees
-            'RL_thigh_joint': 1.,   # [rad] #1 radian is 57.3 degrees
+            'RL_thigh_joint': 0.8,   # [rad] #1 radian is 57.3 degrees
             'FR_thigh_joint': 0.8,     # [rad] #0.8 radian is 45.9 degrees
-            'RR_thigh_joint': 1.,   # [rad] #1 radian is 57.3 degrees
+            'RR_thigh_joint': 0.8,   # [rad] #1 radian is 57.3 degrees
 
             'FL_calf_joint': -1.5,   # [rad] #-1.5 radian is -85.9 degrees
             'RL_calf_joint': -1.5,    # [rad] #-1.5 radian is -85.9 degrees
@@ -109,10 +109,9 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
 
-    
     class rewards( AnymalCRoughCfg.rewards ):
         max_contact_force = 350.
-        base_height_target = 0.3
+        base_height_target = 0.5
         class scales ( AnymalCRoughCfg.rewards.scales ):
 
             
@@ -132,15 +131,40 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             action_rate = -0.01
             stand_still = -0.
 
-            base_uprightness = 1.
+            base_uprightness = 5.
             foot_contact = 1. 
             dof_power = -0.0001
             dof_pos_limits = -0.1
 
             dof_position = -1.
 
-        
-    
+
+
+
+
+            # termination = -0.0
+            # tracking_lin_vel = 0.
+            # tracking_ang_vel = 0.
+            # lin_vel_z = -0.
+            # ang_vel_xy = 0. 
+            # orientation = 0.
+            # torques = -0.00001
+            # dof_vel = -0.
+            # dof_acc = -0.
+            # base_height = 0.
+            # feet_air_time =  0.
+            # collision = -0.
+            # feet_stumble = -0.0 
+            # action_rate = -0.
+            # stand_still = -0.
+
+            # base_uprightness = 0.
+            # foot_contact = 0. 
+            # dof_power = -0.
+            # dof_pos_limits = -0.
+
+            # dof_position = -0.
+
     class domain_rand( AnymalCRoughCfg.domain_rand ):
         friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
 

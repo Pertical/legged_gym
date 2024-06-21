@@ -216,7 +216,7 @@ class LeggedRobot(BaseTask):
         self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
-                                    self.commands[:, :3] * self.commands_scale, 
+                                    self.commands[:, :4] * self.commands_scale, 
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions
@@ -338,23 +338,6 @@ class LeggedRobot(BaseTask):
         if self.cfg.domain_rand.push_robots and  (self.common_step_counter % self.cfg.domain_rand.push_interval == 0):
             self._push_robots()
 
-    # def _resample_commands(self, env_ids):
-    #     """ Randommly select commands of some environments
-
-    #     Args:
-    #         env_ids (List[int]): Environments ids for which new commands are needed
-    #     """
-    #     self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["lin_vel_x"][0], self.command_ranges["lin_vel_x"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-    #     self.commands[env_ids, 1] = torch_rand_float(self.command_ranges["lin_vel_y"][0], self.command_ranges["lin_vel_y"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-    #     if self.cfg.commands.heading_command:
-    #         self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-    #     else:
-    #         self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-
-    #     # set small commands to zero
-    #     self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
-
-
 
     def _resample_commands(self, env_ids):
         """
@@ -371,31 +354,16 @@ class LeggedRobot(BaseTask):
         self.commands[env_ids, 0] = torch_rand_float(self.command_ranges["lin_vel_x"][0], self.command_ranges["lin_vel_x"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         self.commands[env_ids, 1] = torch_rand_float(self.command_ranges["lin_vel_y"][0], self.command_ranges["lin_vel_y"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
-        if self.cfg.commands.heading_command:
+        if self.cfg.commands.heading_command: #False 
             self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         else:
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         if self.cfg.commands.base_height_command:
-            self.commands[env_ids, 4] = torch_rand_float(self.command_ranges["base_height"][0], self.command_ranges["base_height"][1], (len(env_ids), 1), device=self.device).squeeze(1)
-            
-            if self.commands[env_ids, 4].shape[0] > 0:
-                self.height_commands = self.commands[env_ids, 4].clone()
-                self.cfg.rewards.base_height_target = self.commands[env_ids, 4]
-
-                # print("self.commands[env_ids, 4] shape", self.commands[env_ids, 4].shape)
-                # print("self.commands[env_ids, 0] shape", self.commands[env_ids, 0].shape)
-
-
-            if self.height_commands is not None:
-                self.cfg.rewards.base_height_target = self.height_commands
-            #print("Base height shape", self.height_commands.shape)
+            self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["base_height"][0], self.command_ranges["base_height"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1) #why? 
-
-
-  
 
 
 
@@ -431,9 +399,7 @@ class LeggedRobot(BaseTask):
         random_quat = R.random(random_state=torch.randint(0, 2**32 - 1, (1,)).item()).as_quat()
 
         rotating_angle = np.random.uniform(5*np.pi/6, 7*np.pi/6)
-
         upside_down_quat = R.from_euler('x', rotating_angle).as_quat()
-
         final_quat = R.from_quat(random_quat)*R.from_quat(upside_down_quat)
 
     
@@ -592,7 +558,7 @@ class LeggedRobot(BaseTask):
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
         self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
-        self.commands_scale = torch.tensor([self.obs_scales.lin_vel, self.obs_scales.lin_vel, self.obs_scales.ang_vel], device=self.device, requires_grad=False,) # TODO change this
+        self.commands_scale = torch.tensor([self.obs_scales.lin_vel, self.obs_scales.lin_vel, self.obs_scales.ang_vel, self.obs_scales.height], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
@@ -904,84 +870,19 @@ class LeggedRobot(BaseTask):
     def _reward_orientation(self):
         # Penalize non flat base orientation
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
-    
-
-    #What does root_states include? 
-    # root_states = [x, y, z, quat, lin_vel, ang_vel]
-    # root_states = [0, 1, 2, 3:7, 7:10, 10:13]
-    # base_quat = root_states[:, 3:7]
-
-    #Where is the origin of the robot?
-    # base_init_state = [x, y, z, quat, lin_vel, ang_vel]
-    # base_init_state = [0, 1, 2, 3:7, 7:10, 10:13]
-
-    #Where does the base_height measured from? 
-    # base_height = root_states[:, 2].unsqueeze(1) - self.measured_heights
-
-    #Does base_height include the height of the robot? Such as the height of the pelvis?
-    # base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
-
-    #What does dof_pos include?
-    # dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
-
-    #How do I add constrints to the robot's hip joints? 
-   
-
-
-
-
-    # def _reward_base_height(self):
-    #     # Penalize base height away from target
-    #     height_difference = []
-    #     for i in range(self.num_envs):
-    #         base_height = self.root_states[i, 2] 
-    #         base_height_target = self.cfg.rewards.base_height_target[i]
-
-    #         base_height_difference = torch.square(base_height - base_height_target)
-
-    #         height_difference.append(base_height_difference)
-            
-    #     # Sum all elements in the tensor
-    #     return torch.sum(torch.stack(height_difference, dim=0))
-
 
     def _reward_base_height(self):
-        # Penalize base height away from target
-        height_difference = []
-        for i in range(self.num_envs):
-            base_height = self.root_states[i, 2] 
+        # Tracking of base height commands
 
-            # Check if i is less than the size of base_height_target before accessing it
-            if i < len(self.cfg.rewards.base_height_target):
-                base_height_target = self.cfg.rewards.base_height_target[i]
-            else:
-                base_height_target =  0.3  # or any default value
+        base_height_error = torch.square(self.commands[:, 3] - self.root_states[:, 2])
 
-            base_height_difference = torch.square(base_height - base_height_target)
-
-            height_difference.append(base_height_difference)
-
-        # print("height_difference_shape", len(height_difference))
-            
-        # Sum all elements in the tensor
-        return torch.sum(torch.stack(height_difference, dim=0))
+        # print("Height Commands", self.commands[:, 3])
+        # print("Current base height", self.root_states[:, 2])
 
 
-        #print of dof info 
-        # print("Dof pos shape", self.dof_pos.shape) #(num_envs, 13)
-
-        # #dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
-        # print("Dof pos", self.dof_pos) #scale
-
-        # print("Base height shape", base_height.shape) #(num_envs)
-        # print("Base height: ", torch.mean(base_height))
-        # print("Measured_heights", self.measured_heights) #scale
-        # print("Target height", self.cfg.rewards.base_height_target) #(num_envs, 13)
-
-        # print("Shape of root states: ", self.root_states.shape)
+        return torch.exp(-base_height_error/self.cfg.rewards.tracking_sigma)
 
 
-        # return torch.square(base_height - self.cfg.rewards.base_height_target)
     
     def _reward_torques(self):
         # Penalize torques
@@ -1073,7 +974,6 @@ class LeggedRobot(BaseTask):
     
     def _reward_dof_position(self):
 
-     
         hip_joint_indices = [0, 3, 6, 9]
 
         hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
@@ -1084,12 +984,22 @@ class LeggedRobot(BaseTask):
         """
         TESTING AREA
         """
-
         # print("Base position: ", self.root_states[:, :3])
         # print("commands's shape", self.commands.shape) #(num_envs, 4)
 
-
         return reward
+    
+    #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
+    def _reward_hip_angle(self):
+        
+    
+    #TODO Add controls on the thigh_angle, for defaul position, the foot's x&y is set, the thigh angle should be based on the cmd height 
+    def _reward_thigh_angle(self):
+        pass 
+    
+    #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
+    def _reward_calf_angle(self):
+        pass 
     
 
 
@@ -1144,6 +1054,25 @@ class LeggedRobot(BaseTask):
 
 
 
+    #What does root_states include? 
+    # root_states = [x, y, z, quat, lin_vel, ang_vel]
+    # root_states = [0, 1, 2, 3:7, 7:10, 10:13]
+    # base_quat = root_states[:, 3:7]
+
+    #Where is the origin of the robot?
+    # base_init_state = [x, y, z, quat, lin_vel, ang_vel]
+    # base_init_state = [0, 1, 2, 3:7, 7:10, 10:13]
+
+    #Where does the base_height measured from? 
+    # base_height = root_states[:, 2].unsqueeze(1) - self.measured_heights
+
+    #Does base_height include the height of the robot? Such as the height of the pelvis?
+    # base_height = torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1)
+
+    #What does dof_pos include?
+    # dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+
+    #How do I add constrints to the robot's hip joints? 
 
 
 
