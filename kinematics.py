@@ -234,7 +234,7 @@ class kinematics():
     def leg_IK(self, xyz, rot = [0,0,0], legID=0, is_radians=True, center_offset=[0,0,0]):
 
         #what is xyz? what does it represent? 
-        
+
         
         # check is the leg is from the right side 
         is_right = (legID in self.right_legs)
@@ -378,10 +378,10 @@ class kinematics():
     # adjusting angle for specific configurations of motors, incl. orientation
     # this will vary for each robot (possibly for each leg as well)
     def angle_corrector(self, angles=[0,0,0], is_right=True):
-        angles[1] -= 1.5*pi; # add offset
+        angles[1] -= 1.5*pi; # add offset # 90 degrees
         if is_right:
             theta_1 = angles[0] - pi
-            theta_2 = angles[1] + 45*pi/180 # 45 degrees initial offset
+            theta_2 = angles[1] + 45*pi/180 # 45 degrees initial offset #
         else: 
             if angles[0] > pi:  
                 theta_1 = angles[0] - 2*pi
