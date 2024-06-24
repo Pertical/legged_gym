@@ -111,7 +111,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
     class rewards( AnymalCRoughCfg.rewards ):
         max_contact_force = 350.
-        base_height_target = 0.5
+        base_height_target = 0.4
         class scales ( AnymalCRoughCfg.rewards.scales ):
 
             
@@ -124,7 +124,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -1.
+            base_height = -0.
             feet_air_time =  0.
             collision = -0.5
             feet_stumble = -0.0 
@@ -136,34 +136,12 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
             dof_power = -0.0001
             dof_pos_limits = -0.1
 
-            dof_position = -1.
+            dof_position = -0.
+            hip_angle = -1. 
+            thigh_angle = -1.
+            calf_angle = -1.
 
 
-
-
-
-            # termination = -0.0
-            # tracking_lin_vel = 0.
-            # tracking_ang_vel = 0.
-            # lin_vel_z = -0.
-            # ang_vel_xy = 0. 
-            # orientation = 0.
-            # torques = -0.00001
-            # dof_vel = -0.
-            # dof_acc = -0.
-            # base_height = 0.
-            # feet_air_time =  0.
-            # collision = -0.
-            # feet_stumble = -0.0 
-            # action_rate = -0.
-            # stand_still = -0.
-
-            # base_uprightness = 0.
-            # foot_contact = 0. 
-            # dof_power = -0.
-            # dof_pos_limits = -0.
-
-            # dof_position = -0.
 
     class domain_rand( AnymalCRoughCfg.domain_rand ):
         friction_range = [0., 1.5] # on ground planes the friction combination mode is averaging, i.e total friction = (foot_friction + 1.)/2.
@@ -181,8 +159,10 @@ class UnitreeGo1FlatCfgPPO( AnymalCRoughCfgPPO ):
         run_name = 'go1_flat'
         experiment_name = 'flat_unitree_go1'
         # load_run = -1
-        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun21_16-00-06_go1_flat" 
-        max_iterations = 1501
+        # load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat" #This one can recover, but poor position. 
+        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat"
 
-        num_steps_per_env = 30 # 30 steps per env
+        max_iterations = 2001
+
+        num_steps_per_env = 20 # 30 steps per env
 

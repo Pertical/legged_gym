@@ -50,6 +50,8 @@ from .legged_robot_config import LeggedRobotCfg
 
 from scipy.spatial.transform import Rotation as R
 
+from kinematics import kinematics
+
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
         """ Parses the provided config file,
@@ -972,28 +974,29 @@ class LeggedRobot(BaseTask):
         # Penalize power consumption
         return torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
     
-    def _reward_dof_position(self):
+    # def _reward_dof_position(self):
 
-        hip_joint_indices = [0, 3, 6, 9]
+    #     hip_joint_indices = [0, 3, 6, 9]
 
-        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
+    #     hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
 
-        reward = sum(hip_diffs)
-        reward = torch.clamp(reward, 0, 1)
+    #     reward = sum(hip_diffs)
+    #     reward = torch.clamp(reward, 0, 1)
 
-        """
-        TESTING AREA
-        """
-        # print("Base position: ", self.root_states[:, :3])
-        # print("commands's shape", self.commands.shape) #(num_envs, 4)
+    #     """
+    #     TESTING AREA
+    #     """
+    #     # print("Base position: ", self.root_states[:, :3])
+    #     # print("commands's shape", self.commands.shape) #(num_envs, 4)
 
-        return reward
+    #     return reward
     
     #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
     def _reward_hip_angle(self):
-        pass 
+
         hip_joint_indices = [0, 3, 6, 9] # FR, FL, RR, RL
-        reward = torch.relu(sum(torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices), 0, 1)
+        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
+        reward = sum(hip_diffs)
         return reward
         
     
@@ -1001,17 +1004,20 @@ class LeggedRobot(BaseTask):
     def _reward_thigh_angle(self):
         thigh_joint_indices = [1, 4, 7, 10] #FR, FL, RR, RL
 
-        pass
+        
+        thigh_diff = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in thigh_joint_indices]
+        reward = sum(thigh_diff)
 
-
+        return reward
 
     
     #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
     def _reward_calf_angle(self):
         calf_joint_indices = [2, 5, 8, 11] #FR, FL, RR, RL
 
-
-        pass 
+        reward = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in calf_joint_indices]
+        reward = sum(reward)
+        return reward 
     
 
 
