@@ -52,6 +52,8 @@ from scipy.spatial.transform import Rotation as R
 
 from kinematics import kinematics
 
+k = kinematics()
+
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
         """ Parses the provided config file,
@@ -366,6 +368,11 @@ class LeggedRobot(BaseTask):
 
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1) #why? 
+
+        #TODO Add the target dof positions to the empty target tensor 
+        target_pos = k.leg_IK([])
+        
+        
 
 
 
