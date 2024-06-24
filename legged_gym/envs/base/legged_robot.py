@@ -543,6 +543,9 @@ class LeggedRobot(BaseTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_quat = self.root_states[:, 3:7]
+        
+        #TODO empty tensor for the target dof position from inverse kinematics 
+        self.target_dof_pos = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
 
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
 
@@ -569,6 +572,8 @@ class LeggedRobot(BaseTask):
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
         self.measured_heights = 0
+
+
 
         # joint positions offsets and PD gains
         self.default_dof_pos = torch.zeros(self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
@@ -993,6 +998,11 @@ class LeggedRobot(BaseTask):
     
     #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
     def _reward_hip_angle(self):
+        
+        base_height_error = torch.square(self.commands[:, 3] - self.root_states[:, 2])
+
+
+
 
         hip_joint_indices = [0, 3, 6, 9] # FR, FL, RR, RL
         hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
@@ -1018,7 +1028,7 @@ class LeggedRobot(BaseTask):
         reward = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in calf_joint_indices]
         reward = sum(reward)
         return reward 
-    
+    import torch
 
 
 
