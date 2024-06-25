@@ -334,8 +334,8 @@ class LeggedRobot(BaseTask):
         """ Callback called before computing terminations, rewards, and observations
             Default behaviour: Compute ang vel command based on target and heading, compute measured terrain heights and randomly push robots
         """
-        # 
-        env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0).nonzero(as_tuple=False).flatten()
+        
+        env_ids = (self.episode_length_buf % int(self.cfg.commands.resampling_time / self.dt)==0).nonzero(as_tuple=False).flatten() 
         self._resample_commands(env_ids)
         if self.cfg.commands.heading_command:
             forward = quat_apply(self.base_quat, self.forward_vec)
@@ -369,15 +369,31 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         if self.cfg.commands.base_height_command:
+            
             self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["base_height"][0], self.command_ranges["base_height"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
+            for i in range(len(env_ids)):
+                self._get_target_dof_pos(i)
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1) #why? 
 
-        
-        
-        
+        # for i in range(self.num_envs):
+        #     self._get_target_dof_pos(env_ids=i)
 
+
+
+    def _get_target_dof_pos(self, env_ids):
+        # Calculate target joint angles
+        target_height = self.commands[env_ids, 3].cpu().numpy()
+        foot_position = [0, 0.08, -target_height]
+        target_joint_angle = torch.tensor(k.leg_IK(foot_position, legID=0), dtype=torch.float)
+
+        # Direct assignment using slicing and indexing
+        self.target_dof_pos[env_ids, [0, 3, 6, 9]] = target_joint_angle[0]  # hip joints
+        self.target_dof_pos[env_ids, [1, 4, 7, 10]] = target_joint_angle[1]  # thigh joints
+        self.target_dof_pos[env_ids, [2, 5, 8, 11]] = target_joint_angle[2]  # calf joints
+
+       
     def _compute_torques(self, actions):
         """ Compute torques from actions.
             Actions can be interpreted as position or velocity targets given to a PD controller, or directly as scaled torques.
@@ -413,7 +429,6 @@ class LeggedRobot(BaseTask):
         upside_down_quat = R.from_euler('x', rotating_angle).as_quat()
         final_quat = R.from_quat(random_quat)*R.from_quat(upside_down_quat)
 
-    
         return torch.tensor(final_quat.as_quat(), dtype=torch.float32, device=self.device).repeat(size, 1)
 
 
@@ -450,7 +465,6 @@ class LeggedRobot(BaseTask):
         
         if self.cfg.init_state.robot_upside_down:
 
-         
             if env_ids[0] % 2 == 1:
                 self.root_states[env_ids, 3:7] = self.generate_upside_down_quaternion(len(env_ids))
 
@@ -573,7 +587,19 @@ class LeggedRobot(BaseTask):
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
-        self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
+        #self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
+        #Add height command
+        if self.cfg.commands.base_height_command:
+            self.commands = self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False)
+            self.commands[:, 3] = self.cfg.commands.default_base_height
+
+            for i in range(self.num_envs):
+                self._get_target_dof_pos(env_ids=i)
+
+        
+        else:
+            self.commands = torch.zeros(self.num_envs, self.cfg.commands.num_commands, dtype=torch.float, device=self.device, requires_grad=False) # x vel, y vel, yaw vel, heading
+
         self.commands_scale = torch.tensor([self.obs_scales.lin_vel, self.obs_scales.lin_vel, self.obs_scales.ang_vel, self.obs_scales.height], device=self.device, requires_grad=False,) # TODO change this
         self.feet_air_time = torch.zeros(self.num_envs, self.feet_indices.shape[0], dtype=torch.float, device=self.device, requires_grad=False)
         self.last_contacts = torch.zeros(self.num_envs, len(self.feet_indices), dtype=torch.bool, device=self.device, requires_grad=False)
@@ -875,7 +901,10 @@ class LeggedRobot(BaseTask):
         heights = torch.min(heights, heights3)
 
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
-
+    
+    
+        
+    
     #------------ reward functions----------------
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
@@ -888,16 +917,6 @@ class LeggedRobot(BaseTask):
     def _reward_orientation(self):
         # Penalize non flat base orientation
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
-
-    def _reward_base_height(self):
-        # Tracking of base height commands
-
-        base_height_error = torch.square(self.commands[:, 3] - self.root_states[:, 2])
-
-        # print("Height Commands", self.commands[:, 3])
-        # print("Current base height", self.root_states[:, 2])
-
-        return torch.exp(-base_height_error/self.cfg.rewards.tracking_sigma)
 
     def _reward_torques(self):
         # Penalize torques
@@ -917,6 +936,7 @@ class LeggedRobot(BaseTask):
     
     def _reward_collision(self):
         # Penalize collisions on selected bodies
+
         return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
     
     def _reward_termination(self):
@@ -977,6 +997,7 @@ class LeggedRobot(BaseTask):
     def _reward_base_uprightness(self):
         # Penalize base orientation away from upright
         #self.projected_gravity direction is the opposite of the gravity vectorv
+        
         return 1. - self.projected_gravity[:, 2] 
     
     def _reward_foot_contact(self):
@@ -986,33 +1007,48 @@ class LeggedRobot(BaseTask):
     def _reward_dof_power(self):
         # Penalize power consumption
         return torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
-
-
-
-    #TODO Add the target dof positions to the empty target tensor 
-
-        target_pos = k.leg_IK([])
     
-    #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
-    def _reward_hip_angle(self):
-        
+
+    def _reward_tracking_base_height(self):
+        # Tracking of base height commands
+
+        #The larger the error, the smaller the reward
+
         base_height_error = torch.square(self.commands[:, 3] - self.root_states[:, 2])
 
+        # print("Height Commands", self.commands[:, 3])
+        # print("Current base height", self.root_states[:, 2])
 
+        # print("Base height target", self.cfg.rewards.base_height_target)
+        # print("Base height", self.root_states[:, 2 ])
+        # print("self.commands", self.commands.shape)
 
+        print("Command Height of env 20", self.commands[20, 3])
+        print("Base Height of env 20", self.root_states[20, 2] )
+        print("Target DOF pos of env 20", self.target_dof_pos[20, :3] )
+        print("Current DOF pos of env 20", self.dof_pos[20, :3] ) #
 
-        hip_joint_indices = [0, 3, 6, 9] # FR, FL, RR, RL
-        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
+        return torch.exp(-base_height_error/self.cfg.rewards.tracking_sigma)
+    
+
+    #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
+    def _reward_hip_angle(self):
+      
+        # Calculate absolute differences for hip joints
+        hip_joint_indices = [0, 3, 6, 9] #FR, FL, RR, RL
+        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in hip_joint_indices]
+
         reward = sum(hip_diffs)
         return reward
-        
+            
     
     #TODO Add controls on the thigh_angle, for defaul position, the foot's x&y is set, the thigh angle should be based on the cmd height 
     def _reward_thigh_angle(self):
+        
+        
         thigh_joint_indices = [1, 4, 7, 10] #FR, FL, RR, RL
 
-        
-        thigh_diff = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in thigh_joint_indices]
+        thigh_diff = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in thigh_joint_indices]
         reward = sum(thigh_diff)
 
         return reward
@@ -1020,17 +1056,20 @@ class LeggedRobot(BaseTask):
     
     #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
     def _reward_calf_angle(self):
+        
+        
         calf_joint_indices = [2, 5, 8, 11] #FR, FL, RR, RL
 
-        reward = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in calf_joint_indices]
+        reward = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in calf_joint_indices]
         reward = sum(reward)
         return reward 
-    import torch
+
 
 
 
 
 """
+
 <joint name="floating_base" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base"/>

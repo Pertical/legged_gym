@@ -8,7 +8,7 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
     class env(AnymalCRoughCfg.env):
 
         num_observations = 49
-        episode_length_s = 4.
+        episode_length_s = 20.
 
         num_envs = 4096
 
@@ -19,11 +19,15 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
     
     class commands(AnymalCRoughCfg.commands): 
 
-        heading_command = False
+        heading_command = False #False at all time
         num_commands = 4
         resampling_time = 5.
         
         base_height_command = True
+
+        default_base_height = 0.25
+
+
 
         class ranges:
             lin_vel_x = [0., 0.]
@@ -111,36 +115,47 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
     class rewards( AnymalCRoughCfg.rewards ):
         max_contact_force = 350.
-        base_height_target = 0.4
+        base_height_target = 0.25
         class scales ( AnymalCRoughCfg.rewards.scales ):
 
             
-            termination = -0.0
-            tracking_lin_vel = 0.
-            tracking_ang_vel = 0.
-            lin_vel_z = -0.
-            ang_vel_xy = 0. 
-            orientation = -1.0
+            #Penalization
+            lin_vel_z = -0.0 
+            ang_vel_xy = -0.0
+
+            orientation = -0.1
+
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -0.
-            feet_air_time =  0.
-            collision = -0.5
-            feet_stumble = -0.0 
-            action_rate = -0.01
-            stand_still = -0.
+            action_rate = -0.002
 
-            base_uprightness = 2.
-            foot_contact = 1. 
-            dof_power = -0.0001
+            collision = -0.1 
+            termination = -0.0
+
             dof_pos_limits = -0.1
+            dof_vel_limits = -0.0
+            torque_limits = -0.0
 
-            dof_position = -0.
-            hip_angle = -1. 
-            thigh_angle = -1.
-            calf_angle = -1.
+            feet_stumble = -0.0
+            stand_still = -0.0
+            feet_contact_forces = -0.0
 
+            dof_power = -0.0
+
+            hip_angle = -1 
+            thigh_angle = -1
+            calf_angle = -1
+
+            #Reward 
+            tracking_lin_vel = 0.
+            tracking_ang_vel = 0.
+            feet_air_time = 0.0 
+
+            base_uprightness = 1.0
+            foot_contact = 1.0
+
+            tracking_base_height = 1.0 
 
 
     class domain_rand( AnymalCRoughCfg.domain_rand ):
@@ -159,10 +174,10 @@ class UnitreeGo1FlatCfgPPO( AnymalCRoughCfgPPO ):
         run_name = 'go1_flat'
         experiment_name = 'flat_unitree_go1'
         # load_run = -1
-        # load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat" #This one can recover, but poor position. 
-        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat"
+        #load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat" #This one can recover, but poor position. 
+        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_14-28-43_go1_flat"
 
-        max_iterations = 2001
+        max_iterations = 5001
 
-        num_steps_per_env = 20 # 30 steps per env
+        num_steps_per_env = 24 # 30 steps per env
 
