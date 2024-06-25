@@ -313,6 +313,11 @@ class LeggedRobot(BaseTask):
         return props
 
     def _process_rigid_body_props(self, props, env_id):
+
+
+        """
+        Callback allowing to store/change/randomize the rigid body properties of each environment.
+        """
         # if env_id==0:
         #     sum = 0
         #     for i, p in enumerate(props):
@@ -369,12 +374,9 @@ class LeggedRobot(BaseTask):
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1) #why? 
 
-        #TODO Add the target dof positions to the empty target tensor 
-        target_pos = k.leg_IK([])
         
         
-
-
+        
 
     def _compute_torques(self, actions):
         """ Compute torques from actions.
@@ -552,7 +554,9 @@ class LeggedRobot(BaseTask):
         self.base_quat = self.root_states[:, 3:7]
         
         #TODO empty tensor for the target dof position from inverse kinematics 
+        
         self.target_dof_pos = torch.zeros(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+        # print("target tensor shape", self.target_dof_pos.shape)
 
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
 
@@ -893,11 +897,8 @@ class LeggedRobot(BaseTask):
         # print("Height Commands", self.commands[:, 3])
         # print("Current base height", self.root_states[:, 2])
 
-
         return torch.exp(-base_height_error/self.cfg.rewards.tracking_sigma)
 
-
-    
     def _reward_torques(self):
         # Penalize torques
         return torch.sum(torch.square(self.torques), dim=1)
@@ -985,23 +986,12 @@ class LeggedRobot(BaseTask):
     def _reward_dof_power(self):
         # Penalize power consumption
         return torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
-    
-    # def _reward_dof_position(self):
 
-    #     hip_joint_indices = [0, 3, 6, 9]
 
-    #     hip_diffs = [torch.abs(self.dof_pos[:, i] - self.default_dof_pos[:, i]) for i in hip_joint_indices]
 
-    #     reward = sum(hip_diffs)
-    #     reward = torch.clamp(reward, 0, 1)
+    #TODO Add the target dof positions to the empty target tensor 
 
-    #     """
-    #     TESTING AREA
-    #     """
-    #     # print("Base position: ", self.root_states[:, :3])
-    #     # print("commands's shape", self.commands.shape) #(num_envs, 4)
-
-    #     return reward
+        target_pos = k.leg_IK([])
     
     #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
     def _reward_hip_angle(self):
