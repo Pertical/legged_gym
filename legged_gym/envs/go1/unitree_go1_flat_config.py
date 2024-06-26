@@ -16,7 +16,6 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         mesh_type = 'plane'
         measure_heights = False
 
-    
     class commands(AnymalCRoughCfg.commands): 
 
         heading_command = False #False at all time
@@ -26,7 +25,6 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         base_height_command = True
 
         default_base_height = 0.25
-
 
 
         class ranges:
@@ -118,7 +116,6 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
         base_height_target = 0.25
         class scales ( AnymalCRoughCfg.rewards.scales ):
 
-            
             #Penalization
             lin_vel_z = -0.0 
             ang_vel_xy = -0.0
@@ -143,16 +140,17 @@ class UnitreeGo1FlatCfg(AnymalCRoughCfg):
 
             dof_power = -0.0
 
-            hip_angle = -1 
-            thigh_angle = -1
-            calf_angle = -1
+            # hip_angle = -2.
+            # thigh_angle = 2.
+            # calf_angle = -2.
+            target_dof_pos = -1.0
 
             #Reward 
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
             feet_air_time = 0.0 
 
-            base_uprightness = 1.0
+            base_uprightness = 3.0 
             foot_contact = 1.0
 
             tracking_base_height = 1.0 
@@ -171,13 +169,13 @@ class UnitreeGo1FlatCfgPPO( AnymalCRoughCfgPPO ):
     #     entropy_coef = 0.01
 
     class runner ( AnymalCRoughCfgPPO.runner):
-        run_name = 'go1_flat'
+        run_name = ''
         experiment_name = 'flat_unitree_go1'
-        # load_run = -1
+        load_run = -1
         #load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_12-12-20_go1_flat" #This one can recover, but poor position. 
-        load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_14-28-43_go1_flat"
+        #load_run = r"/home/bridge/Desktop/legged_gym/logs/flat_unitree_go1/Jun24_14-28-43_go1_flat"
 
-        max_iterations = 5001
+        max_iterations = 1501
 
         num_steps_per_env = 24 # 30 steps per env
 

@@ -50,9 +50,9 @@ from .legged_robot_config import LeggedRobotCfg
 
 from scipy.spatial.transform import Rotation as R
 
-from kinematics import kinematics
+from kinematics import Inverse_Kinematics
 
-k = kinematics()
+k = Inverse_Kinematics()
 
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
@@ -220,7 +220,7 @@ class LeggedRobot(BaseTask):
         self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
                                     self.base_ang_vel  * self.obs_scales.ang_vel,
                                     self.projected_gravity,
-                                    self.commands[:, :4] * self.commands_scale, 
+                                    self.commands[:, :] * self.commands_scale, 
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions
@@ -903,7 +903,6 @@ class LeggedRobot(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
     
     
-        
     
     #------------ reward functions----------------
     def _reward_lin_vel_z(self):
@@ -1031,38 +1030,43 @@ class LeggedRobot(BaseTask):
         return torch.exp(-base_height_error/self.cfg.rewards.tracking_sigma)
     
 
-    #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
-    def _reward_hip_angle(self):
+    # #TODO Add controls on the hip_angle, for defaul position, we should have hip angle = 0
+    # def _reward_hip_angle(self):
       
-        # Calculate absolute differences for hip joints
-        hip_joint_indices = [0, 3, 6, 9] #FR, FL, RR, RL
-        hip_diffs = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in hip_joint_indices]
+    #     # Calculate absolute differences for hip joints
+    #     hip_joint_indices = [0, 3, 6, 9] #FR, FL, RR, RL
+    #     hip_diffs = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in hip_joint_indices]
 
-        reward = sum(hip_diffs)
-        return reward
+    #     reward = sum(hip_diffs)
+    #     return reward
             
     
-    #TODO Add controls on the thigh_angle, for defaul position, the foot's x&y is set, the thigh angle should be based on the cmd height 
-    def _reward_thigh_angle(self):
+    # #TODO Add controls on the thigh_angle, for defaul position, the foot's x&y is set, the thigh angle should be based on the cmd height 
+    # def _reward_thigh_angle(self):
         
         
-        thigh_joint_indices = [1, 4, 7, 10] #FR, FL, RR, RL
+    #     thigh_joint_indices = [1, 4, 7, 10] #FR, FL, RR, RL
 
-        thigh_diff = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in thigh_joint_indices]
-        reward = sum(thigh_diff)
+    #     thigh_diff = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in thigh_joint_indices]
+    #     reward = sum(thigh_diff)
 
-        return reward
+    #     return reward
 
     
-    #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
-    def _reward_calf_angle(self):
+    # #TODO Add controls on the calf_angle, for defaul position, the foot's x&y is set, the calf angle should be based on the cmd height
+    # def _reward_calf_angle(self):
         
         
-        calf_joint_indices = [2, 5, 8, 11] #FR, FL, RR, RL
+    #     calf_joint_indices = [2, 5, 8, 11] #FR, FL, RR, RL
 
-        reward = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in calf_joint_indices]
-        reward = sum(reward)
-        return reward 
+    #     reward = [torch.abs(self.dof_pos[:, i] - self.target_dof_pos[:, i]) for i in calf_joint_indices]
+    #     reward = sum(reward)
+    #     return reward 
+    
+    def _reward_target_dof_pos(self):
+        # Penalize difference between target and current dof positions
+        return torch.sum(torch.square(self.dof_pos - self.target_dof_pos), dim=1)
+
 
 
 
