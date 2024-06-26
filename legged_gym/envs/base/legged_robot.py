@@ -1007,6 +1007,10 @@ class LeggedRobot(BaseTask):
         # Penalize power consumption
         return torch.sum(torch.abs(self.torques * self.dof_vel), dim=1)
     
+    def _reward_lin_vel_xy(self):
+        # Penalize xy axes base linear velocity
+        return torch.sum(torch.square(self.base_lin_vel[:, :2]), dim=1)
+    
 
     def _reward_tracking_base_height(self):
         # Tracking of base height commands
